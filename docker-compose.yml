@@ -3,7 +3,7 @@ networks:
 
 services:
   influxdb:
-    image: influxdb:latest
+    image: influxdb:2
     container_name: influxdb
     ports:
       - '8083:8083'
@@ -25,6 +25,8 @@ services:
       - influxdb
     volumes:
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./data/json-logging:/data/json-logging
+    user: '1000:1000'
 
   grafana:
     image: grafana/grafana:latest

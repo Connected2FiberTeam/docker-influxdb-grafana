@@ -68,6 +68,8 @@ influx setup --name myinfluxdb2 --host http://localhost:8086 \
   -b my-bucket -t my-token -r 0 -f
 ```
 
+Note: as this project is for local usage. These default values will be used in other setups. If we need to make them configurable, we can do in the future.
+
 ## Grafana and influxDB connection Setup
 
 ### add datasource in Grafana UI
@@ -176,3 +178,9 @@ The format of our cold logging would include lines of JSON object like
   ]
 }
 ```
+
+### steps
+
+1. move those JSON files into folder `./data/json-logging`
+2. make sure the `telegraf.conf` has properly set up sections `[[inputs.file]]` and `[[outputs.influxdb_v2]]`
+3. execute `docker exec telegraf telegraf`
