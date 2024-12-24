@@ -2,3 +2,5 @@ data/influxdb/*
 !data/influxdb/.gitkeep
 data/grafana/*
 !data/grafana/.gitkeep
+data/json-logging/*
+!data/json-logging/.gitkeep
