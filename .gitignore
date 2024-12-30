@@ -4,3 +4,7 @@ data/grafana/*
 !data/grafana/.gitkeep
 data/json-logging/*
 !data/json-logging/.gitkeep
+data/loaded-logging/*
+!data/loaded-logging/.gitkeep
+data/loading-error-data/*
+!data/loading-error-data/.gitkeep

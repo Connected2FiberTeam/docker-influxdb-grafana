@@ -26,7 +26,11 @@ services:
     volumes:
       - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
       - ./data/json-logging:/data/json-logging
+      - ./data/loaded-logging:/data/loaded-logging
+      - ./data/loading-error-data:/data/loading-error-data
     user: '1000:1000'
+    depends_on:
+      - influxdb
 
   grafana:
     image: grafana/grafana:latest

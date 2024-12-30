@@ -54,8 +54,9 @@ docker exec telegraf telegraf
 
 When this compose cluster is up for the first time, it's recommanded to initialize InfluxDB and Grafana in below method:
 
-## InfluxDB Setup
+## InfluxDB Setup （for information only)
 
+(skip this part, because inititialization has been setup in `env.influxdb` file)
 reference: https://www.influxdata.com/blog/getting-started-influxdb-grafana/
 
 ```shell
@@ -179,8 +180,22 @@ The format of our cold logging would include lines of JSON object like
 }
 ```
 
+### preparations
+
+data clean up:
+
+to get rid of JSON data that's too long (one json line with more than 100000 charactoers), we need to filter them.
+
+e.g.
+
+```shell
+awk 'length($0) <= 100000' \
+    ./data/json-logging/archive_130546.7614.zzJc7_uNRFS5A6LiamyP_g.json \
+    > ./data/json-logging/simplified_archive.json
+```
+
 ### steps
 
 1. move those JSON files into folder `./data/json-logging`
-2. make sure the `telegraf.conf` has properly set up sections `[[inputs.file]]` and `[[outputs.influxdb_v2]]`
-3. execute `docker exec telegraf telegraf`
+2. make sure the `telegraf.conf` has properly set up sections `[[inputs.directory_monitor]]` and `[[outputs.influxdb_v2]]`
+3. start the cluster: `docker-compose up -d`
