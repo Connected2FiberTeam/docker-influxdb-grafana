@@ -99,6 +99,103 @@ Save & Test: Success will display two green notifications (3 buckets found + Dat
 
 \*in the above reference article, it showed you to run a sample query against influxDB. For those who want to try, you can click into the above documentation.
 
+#### Case 1: connect influxDB to Grafana using InfluxQL
+
+1. according to https://docs.influxdata.com/influxdb/v2/tools/grafana/?t=InfluxQL#installed-a-new-influxdb-instance, we need to do two things first: enabled influxDB V1-compatible authentication credentials, and manually create DBRP mappings. 
+
+Let's get in influxDB instance: `docker exec -it influxdb bash`
+
+a. view existing V1 authorizations: `influx v1 auth list`. You are supposed to see results like below 
+```shell
+root@77b06e013f79:/# influx v1 auth list
+ID      Description     Username        v2 User Name    v2 User ID      Permissions
+```
+b. create a V1 authorization
+
+to create V1-compatible credentials, we need to know the bucket ID of our default bucket `my-bucket` first. 
+execute `influx bucket list` in the bash shell inside the catainer.
+
+then you would see something like this (actual values are different than the example)
+```shell
+root@77b06e013f79:/# influx bucket list
+ID                      Name            Retention       Shard group duration    Organization ID         Schema Type
+ecb6cdeb10297804        _monitoring     168h0m0s        24h0m0s                 3da3c410fb4f8edf        implicit
+6e27309b92a7f9e0        _tasks          72h0m0s         24h0m0s                 3da3c410fb4f8edf        implicit
+72c336c6fdf0150a        my-bucket       infinite        168h0m0s                3da3c410fb4f8edf        implicit
+```
+
+In this case, we will use `72c336c6fdf0150a` in the rest of steps.
+
+Use the influx v1 auth create command to grant read/write permissions to specific buckets. Provide the following:
+
+bucket IDs to grant read or write permissions to
+new username
+new password (when prompted)
+
+```shell
+influx v1 auth create \
+  --read-bucket 72c336c6fdf0150a \
+  --write-bucket 72c336c6fdf0150a \
+  --username admin
+```
+
+After double-typing the credential, we finished creating V1 compatible authorization
+
+```shell
+root@77b06e013f79:/# influx v1 auth create \
+  --read-bucket 72c336c6fdf0150a \
+  --write-bucket 72c336c6fdf0150a \
+  --username admin
+? Please type your password **********
+? Please type your password again **********
+ID                      Description     Username        v2 User Name    v2 User ID              Permissions
+0e3622b6fa3da000                        admin           admin           0e361a8162da6000        [read:orgs/3da3c410fb4f8edf/buckets/72c336c6fdf0150a write:orgs/3da3c410fb4f8edf/buckets/72c336c6fdf0150a]
+```
+
+2. view and create InfluxDB DBRP mappings 
+
+[quoting : https://docs.influxdata.com/influxdb/v2/tools/grafana/?t=InfluxQL#view-and-create-influxdb-dbrp-mappings]
+> When using InfluxQL to query InfluxDB, the query must specify a database and a retention policy. InfluxDB DBRP mappings associate database and retention policy combinations with InfluxDB 2.7 buckets.
+> DBRP mappings do not affect the retention period of the target bucket. These mappings allow queries following InfluxDB 1.x conventions to successfully query InfluxDB 2.7 buckets.
+
+a. view existing DBRP mappings
+`influx v1 dbrp list`
+
+should be like 
+```shell
+root@77b06e013f79:/# influx v1 dbrp list
+ID      Database        Bucket ID       Retention Policy        Default Organization ID
+
+VIRTUAL DBRP MAPPINGS (READ-ONLY)
+----------------------------------
+ID                      Database        Bucket ID               Retention Policy        Default Organization ID
+ecb6cdeb10297804        _monitoring     ecb6cdeb10297804        autogen                 true    3da3c410fb4f8edf
+6e27309b92a7f9e0        _tasks          6e27309b92a7f9e0        autogen                 true    3da3c410fb4f8edf
+72c336c6fdf0150a        my-bucket       72c336c6fdf0150a        autogen                 true    3da3c410fb4f8edf
+```
+
+b. create a DBRP mapping
+
+> Use the influx v1 dbrp create command command to create a DBRP mapping. Provide the following:
+> database name
+> retention policy name (not retention period)
+> bucket ID
+> (optional) --default flag if you want the retention policy to be the default retention policy for the specified database
+
+```shell
+influx v1 dbrp create \
+  --db my-bucket \
+  --rp example-rp \
+  --bucket-id 72c336c6fdf0150a \
+  --default
+```
+
+after finishing the above sections (a and B)
+
+we can configure InfluxDB as a data source in Grafana, using the `influxQL` option of Query Language. (see step 3 of https://docs.influxdata.com/influxdb/v2/tools/grafana/?t=InfluxQL#configure-your-influxdb-connection) 
+
+Note: Unlike the screenshot from the step 3 link above, our verified way to configure influxDB using InfluxQL in Grafana: turn off any button in `Auth` section,  do not create custom Authentication Header, and put `my-bucket` in database field, and put our default user `admin` and password `admin54321` , and chose HTTP method `GET`, others can be default. 
+
 ## Load JSON logs in our cold archive (draft | In-progress)
 
 ### assumptions:
@@ -197,5 +294,5 @@ awk 'length($0) <= 100000' \
 ### steps
 
 1. move those JSON files into folder `./data/json-logging`
-2. make sure the `telegraf.conf` has properly set up sections `[[inputs.directory_monitor]]` and `[[outputs.influxdb_v2]]`
+2. make sure the `telegraf.conf` has properly set up sections `[[inputs.tail]]` and `[[outputs.influxdb_v2]]`
 3. start the cluster: `docker-compose up -d`
